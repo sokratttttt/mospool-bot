@@ -28,7 +28,6 @@ class User(Base):
     last_active = Column(DateTime, default=datetime.utcnow)
     
     # Связи
-    posts = relationship("Post", back_populates="author")
     logs = relationship("Log", back_populates="user")
     
     def is_admin(self) -> bool:
@@ -73,7 +72,7 @@ class Post(Base):
     template_id = Column(Integer, ForeignKey("templates.id"))
     
     # Связи
-    author = relationship("User", foreign_keys=[author_id], back_populates="posts")
+    author = relationship("User", foreign_keys=[author_id])
     publications = relationship("Publication", back_populates="post")
     template = relationship("Template")
     
