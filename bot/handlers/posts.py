@@ -135,30 +135,36 @@ async def save_post(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     session = get_session()
     try:
+        # Если админ - сразу approved, иначе draft
+        status = PostStatus.APPROVED if user.can_publish() else PostStatus.DRAFT
+        
         post = Post(
             content=content,
             title=content[:50] + "..." if len(content) > 50 else content,
             author_id=user.id,
-            status=PostStatus.DRAFT,
+            status=status,
             channels=channels,
             media_urls=[]
         )
         session.add(post)
         session.commit()
         post_id = post.id
+        post_status = post.status
     finally:
         session.close()
     
     # Очищаем данные
     context.user_data.clear()
     
+    status_text = "Одобрен ✅" if post_status == PostStatus.APPROVED else "Черновик 📝"
+    
     await query.edit_message_text(
         f"✅ **Пост #{post_id} создан!**\n\n"
         f"📝 {content[:100]}{'...' if len(content) > 100 else ''}\n\n"
         f"📢 Каналы: {', '.join(channels)}\n"
-        f"📊 Статус: Черновик\n\n"
+        f"📊 Статус: {status_text}\n\n"
         "Что делать дальше?",
-        reply_markup=post_actions_keyboard(post_id, PostStatus.DRAFT, user.can_publish()),
+        reply_markup=post_actions_keyboard(post_id, post_status, user.can_publish()),
         parse_mode="Markdown"
     )
 
@@ -258,7 +264,6 @@ async def post_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     elif data.startswith("post_edit:"):
         post_id = int(data.split(":")[1])
-        # TODO: Редактирование поста
         await query.answer("Редактирование пока не реализовано", show_alert=True)
     
     elif data.startswith("post_submit:"):
@@ -268,6 +273,19 @@ async def post_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     elif data.startswith("post_approve:"):
         post_id = int(data.split(":")[1])
         await approve_post(query, post_id, user)
+    
+    elif data.startswith("post_publish:"):
+        post_id = int(data.split(":")[1])
+        await publish_post_now(query, post_id, user, context)
+    
+    elif data.startswith("post_schedule:"):
+        post_id = int(data.split(":")[1])
+        context.user_data["schedule_post_id"] = post_id
+        from keyboards import schedule_keyboard
+        await query.edit_message_text(
+            f"📅 Когда опубликовать пост #{post_id}?",
+            reply_markup=schedule_keyboard()
+        )
     
     elif data.startswith("post_delete:"):
         post_id = int(data.split(":")[1])
@@ -280,6 +298,63 @@ async def post_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             reply_markup=posts_list_keyboard(posts),
             parse_mode="Markdown"
         )
+
+
+async def publish_post_now(query, post_id: int, user, context):
+    """Публикация поста прямо сейчас"""
+    from config import TELEGRAM_CHANNEL_ID
+    from utils.vk_client import get_vk_client
+    
+    if not user or not user.can_publish():
+        await query.answer("Нет прав на публикацию", show_alert=True)
+        return
+    
+    session = get_session()
+    try:
+        post = session.query(Post).filter(Post.id == post_id).first()
+        
+        if not post:
+            await query.answer("Пост не найден", show_alert=True)
+            return
+        
+        results = []
+        channels = post.channels or ["telegram"]
+        
+        # Публикация в Telegram
+        if "telegram" in channels and TELEGRAM_CHANNEL_ID:
+            try:
+                await context.bot.send_message(
+                    chat_id=TELEGRAM_CHANNEL_ID,
+                    text=post.content
+                )
+                results.append("✅ Telegram: опубликовано")
+            except Exception as e:
+                results.append(f"❌ Telegram: {e}")
+        
+        # Публикация в VK
+        if "vk" in channels:
+            vk_client = get_vk_client()
+            if vk_client.is_configured():
+                result = vk_client.publish_post(post.content)
+                if result:
+                    results.append(f"✅ VK: {result.get('url', 'опубликовано')}")
+                else:
+                    results.append("❌ VK: ошибка")
+            else:
+                results.append("⚠️ VK: не настроен")
+        
+        # Обновляем статус
+        post.status = PostStatus.PUBLISHED
+        post.published_at = datetime.utcnow()
+        session.commit()
+        
+        result_text = "\n".join(results)
+        await query.edit_message_text(
+            f"📤 **Пост #{post_id} опубликован!**\n\n{result_text}",
+            parse_mode="Markdown"
+        )
+    finally:
+        session.close()
 
 
 async def show_post(query, post_id: int, user):

@@ -34,15 +34,25 @@ from handlers import (
     queue_scheduled_command, test_publish_command,
 )
 
-# Logging
+# Logging - create data dir first
+import os
+os.makedirs('data', exist_ok=True)
+
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     level=logging.INFO,
     handlers=[
-        logging.FileHandler('data/bot.log', encoding='utf-8'),
-        logging.StreamHandler()
+        logging.StreamHandler(),
     ]
 )
+# Add file handler if possible
+try:
+    file_handler = logging.FileHandler('data/bot.log', encoding='utf-8')
+    file_handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
+    logging.getLogger().addHandler(file_handler)
+except Exception:
+    pass
+
 logger = logging.getLogger(__name__)
 
 
@@ -144,6 +154,15 @@ def main():
     app.add_handler(CallbackQueryHandler(post_callback, pattern="^post_"))
     app.add_handler(CallbackQueryHandler(schedule_callback, pattern="^schedule:"))
     app.add_handler(CallbackQueryHandler(select_channels_callback, pattern="^channel"))
+    
+    # Cancel callback for inline buttons
+    async def cancel_callback(update: Update, context):
+        query = update.callback_query
+        await query.answer()
+        await query.edit_message_text("❌ Операция отменена.")
+        context.user_data.clear()
+    
+    app.add_handler(CallbackQueryHandler(cancel_callback, pattern="^cancel$"))
     
     # ============ MESSAGE HANDLERS ============
     
