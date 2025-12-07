@@ -1,0 +1,20 @@
+[Unit]
+Description=Pool Social Media Automation System
+After=network.target
+
+[Service]
+Type=simple
+User=www-data
+Group=www-data
+WorkingDirectory=/opt/pool-social
+Environment="PATH=/opt/pool-social/venv/bin"
+ExecStart=/opt/pool-social/venv/bin/python manage.py runserver 0.0.0.0:8000
+Restart=always
+RestartSec=10
+
+# Logging
+StandardOutput=append:/var/log/pool-social/app.log
+StandardError=append:/var/log/pool-social/error.log
+
+[Install]
+WantedBy=multi-user.target

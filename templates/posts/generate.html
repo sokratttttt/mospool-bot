@@ -1,0 +1,222 @@
+{% extends 'base.html' %}
+
+{% block title %}Генерация контента - 🏊 Бассейны{% endblock %}
+{% block page_title %}🤖 Генерация контента с ИИ{% endblock %}
+
+{% block content %}
+<div class="generate-page">
+    <div class="generate-grid">
+        <!-- Input Form -->
+        <div class="card">
+            <div class="card-header">
+                <h3>Параметры генерации</h3>
+            </div>
+            <div class="card-body">
+                <div class="form-group">
+                    <label>Категория контента</label>
+                    <select id="category">
+                        <option value="project">🏊 Новый проект</option>
+                        <option value="tip">💡 Полезный совет</option>
+                        <option value="promo">🎁 Акция</option>
+                        <option value="case">📸 Кейс</option>
+                        <option value="edu">📚 Образовательный</option>
+                    </select>
+                </div>
+
+                <div id="projectFields">
+                    <div class="form-group">
+                        <label>Тип бассейна</label>
+                        <select id="pool_type">
+                            {% for value, label in pool_types %}
+                            <option value="{{ label }}">{{ label }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Размеры</label>
+                            <input type="text" id="size" placeholder="8x4 м, глубина 1.5 м">
+                        </div>
+                        <div class="form-group">
+                            <label>Локация</label>
+                            <input type="text" id="location" placeholder="Москва и МО">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Особенности</label>
+                        <textarea id="features" rows="3"
+                            placeholder="Противоток, RGB подсветка, джакузи зона, автоматическое покрытие"></textarea>
+                    </div>
+                </div>
+
+                <div id="tipFields" style="display: none;">
+                    <div class="form-group">
+                        <label>Тема совета</label>
+                        <input type="text" id="tip_title" placeholder="Как правильно чистить фильтр">
+                    </div>
+                    <div class="form-group">
+                        <label>Краткое содержание</label>
+                        <textarea id="tip_content" rows="3" placeholder="Основные моменты совета..."></textarea>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="use_ai" checked>
+                        Использовать DeepSeek AI (бесплатно)
+                    </label>
+                </div>
+
+                <button type="button" class="btn btn-primary btn-block" onclick="generateContent()">
+                    🤖 Сгенерировать контент
+                </button>
+            </div>
+        </div>
+
+        <!-- Result -->
+        <div class="card">
+            <div class="card-header">
+                <h3>Результат</h3>
+                <div class="header-actions">
+                    <button type="button" class="btn btn-sm btn-secondary" onclick="copyToClipboard()">📋
+                        Копировать</button>
+                    <button type="button" class="btn btn-sm btn-primary" onclick="createPost()">➕ Создать пост</button>
+                </div>
+            </div>
+            <div class="card-body">
+                <div id="loadingIndicator" style="display: none;" class="loading">
+                    <div class="spinner"></div>
+                    <span>Генерация...</span>
+                </div>
+                <textarea id="generatedContent" rows="15"
+                    placeholder="Здесь появится сгенерированный контент..."></textarea>
+                <div class="char-counter">
+                    <span id="charCount">0</span> символов
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Tips -->
+    <div class="card">
+        <div class="card-header">
+            <h3>💡 Быстрая генерация советов</h3>
+        </div>
+        <div class="card-body">
+            <p>Нажмите для генерации готовых советов по уходу за бассейном:</p>
+            <div class="quick-tips">
+                <button class="btn btn-outline" onclick="generateTip('Чистка фильтра')">🔧 Чистка фильтра</button>
+                <button class="btn btn-outline" onclick="generateTip('Проверка pH')">⚗️ Проверка pH</button>
+                <button class="btn btn-outline" onclick="generateTip('Зимняя консервация')">❄️ Консервация</button>
+                <button class="btn btn-outline" onclick="generateTip('Уровень хлора')">💧 Уровень хлора</button>
+                <button class="btn btn-outline" onclick="generateTip('Обратная промывка')">🔄 Обратная промывка</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    const categorySelect = document.getElementById('category');
+    const projectFields = document.getElementById('projectFields');
+    const tipFields = document.getElementById('tipFields');
+    const generatedContent = document.getElementById('generatedContent');
+    const charCount = document.getElementById('charCount');
+    const loadingIndicator = document.getElementById('loadingIndicator');
+
+    // Toggle fields based on category
+    categorySelect.addEventListener('change', function () {
+        if (this.value === 'tip') {
+            projectFields.style.display = 'none';
+            tipFields.style.display = 'block';
+        } else {
+            projectFields.style.display = 'block';
+            tipFields.style.display = 'none';
+        }
+    });
+
+    // Update char count
+    generatedContent.addEventListener('input', function () {
+        charCount.textContent = this.value.length;
+    });
+
+    async function generateContent() {
+        const category = categorySelect.value;
+        const useAi = document.getElementById('use_ai').checked;
+
+        const data = {
+            category: category,
+            use_ai: useAi,
+            pool_type: document.getElementById('pool_type').value,
+            size: document.getElementById('size').value,
+            features: document.getElementById('features').value,
+            location: document.getElementById('location').value,
+            title: document.getElementById('tip_title')?.value || '',
+            content: document.getElementById('tip_content')?.value || '',
+        };
+
+        loadingIndicator.style.display = 'flex';
+        generatedContent.value = '';
+
+        try {
+            const response = await fetch('/api/generate/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(data)
+            });
+
+            const result = await response.json();
+            if (result.success) {
+                generatedContent.value = result.content;
+                charCount.textContent = result.content.length;
+            } else {
+                generatedContent.value = 'Ошибка: ' + (result.error || 'Неизвестная ошибка');
+            }
+        } catch (error) {
+            generatedContent.value = 'Ошибка сети: ' + error.message;
+        } finally {
+            loadingIndicator.style.display = 'none';
+        }
+    }
+
+    function generateTip(topic) {
+        document.getElementById('category').value = 'tip';
+        categorySelect.dispatchEvent(new Event('change'));
+        document.getElementById('tip_title').value = topic;
+        generateContent();
+    }
+
+    function copyToClipboard() {
+        generatedContent.select();
+        document.execCommand('copy');
+        alert('Скопировано в буфер обмена!');
+    }
+
+    function createPost() {
+        const content = generatedContent.value;
+        if (!content) {
+            alert('Сначала сгенерируйте контент');
+            return;
+        }
+
+        // Redirect to create page with content in URL
+        const url = new URL('{% url "post_create" %}', window.location.origin);
+        sessionStorage.setItem('generatedContent', content);
+        window.location.href = url;
+    }
+
+    // Load content from session if available
+    window.addEventListener('load', function () {
+        const saved = sessionStorage.getItem('generatedContent');
+        if (saved && window.location.pathname.includes('create')) {
+            document.getElementById('content').value = saved;
+            sessionStorage.removeItem('generatedContent');
+        }
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,46 @@
+{% extends 'base.html' %}
+
+{% block title %}Проекты - 🏊 Бассейны{% endblock %}
+{% block page_title %}🏗️ Проекты бассейнов{% endblock %}
+
+{% block header_actions %}
+<a href="{% url 'project_create' %}" class="btn btn-primary">➕ Добавить проект</a>
+{% endblock %}
+
+{% block content %}
+<div class="projects-grid">
+    {% for project in projects %}
+    <div class="project-card">
+        {% if project.main_image %}
+        <div class="project-image">
+            <img src="{{ project.main_image.url }}" alt="{{ project.title }}">
+        </div>
+        {% endif %}
+        <div class="project-body">
+            <h3>{{ project.title }}</h3>
+            <div class="project-meta">
+                <span class="badge">{{ project.get_pool_type_display }}</span>
+                <span>{{ project.size }}</span>
+            </div>
+            <p>{{ project.features|truncatechars:100 }}</p>
+            <div class="project-footer">
+                {% if project.is_published %}
+                <span class="text-success">✅ Пост создан</span>
+                {% else %}
+                <form method="post" action="{% url 'project_create' %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="project_id" value="{{ project.id }}">
+                    <button class="btn btn-sm btn-primary">📝 Создать пост</button>
+                </form>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% empty %}
+    <div class="empty-state">
+        <p>📭 Нет проектов</p>
+        <a href="{% url 'project_create' %}" class="btn btn-primary">Добавить проект</a>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

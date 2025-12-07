@@ -1,0 +1,207 @@
+{% extends 'base.html' %}
+
+{% block title %}Дашборд - 🏊 Бассейны{% endblock %}
+{% block page_title %}📊 Дашборд{% endblock %}
+
+{% block header_actions %}
+<a href="{% url 'post_create' %}" class="btn btn-primary">➕ Создать пост</a>
+{% endblock %}
+
+{% block content %}
+<!-- Stats Cards -->
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-icon">📝</div>
+        <div class="stat-info">
+            <span class="stat-value">{{ total_posts }}</span>
+            <span class="stat-label">Всего постов</span>
+        </div>
+    </div>
+    <div class="stat-card stat-success">
+        <div class="stat-icon">✅</div>
+        <div class="stat-info">
+            <span class="stat-value">{{ published_posts }}</span>
+            <span class="stat-label">Опубликовано</span>
+        </div>
+    </div>
+    <div class="stat-card stat-info">
+        <div class="stat-icon">📅</div>
+        <div class="stat-info">
+            <span class="stat-value">{{ scheduled_posts }}</span>
+            <span class="stat-label">Запланировано</span>
+        </div>
+    </div>
+    <div class="stat-card stat-danger">
+        <div class="stat-icon">❌</div>
+        <div class="stat-info">
+            <span class="stat-value">{{ failed_posts }}</span>
+            <span class="stat-label">Ошибки</span>
+        </div>
+    </div>
+</div>
+
+<!-- Main Sections -->
+<div class="dashboard-grid">
+    <!-- Upcoming Posts -->
+    <div class="card">
+        <div class="card-header">
+            <h3>📅 Запланированные посты</h3>
+        </div>
+        <div class="card-body">
+            {% if upcoming_posts %}
+            <ul class="post-list">
+                {% for post in upcoming_posts %}
+                <li class="post-item">
+                    <a href="{% url 'post_detail' post.id %}">
+                        <span class="post-title">{{ post.title }}</span>
+                        <span class="post-time">{{ post.scheduled_time|date:"d.m H:i" }}</span>
+                    </a>
+                </li>
+                {% endfor %}
+            </ul>
+            {% else %}
+            <p class="empty-text">Нет запланированных постов</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Pending Moderation -->
+    <div class="card">
+        <div class="card-header">
+            <h3>⏳ На модерации</h3>
+        </div>
+        <div class="card-body">
+            {% if pending_posts %}
+            <ul class="post-list">
+                {% for post in pending_posts %}
+                <li class="post-item">
+                    <a href="{% url 'post_detail' post.id %}">
+                        <span class="post-title">{{ post.title }}</span>
+                        <span class="post-meta">{{ post.created_at|date:"d.m H:i" }}</span>
+                    </a>
+                </li>
+                {% endfor %}
+            </ul>
+            {% else %}
+            <p class="empty-text">Нет постов на модерации</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Recent Publications -->
+    <div class="card card-wide">
+        <div class="card-header">
+            <h3>📤 Последние публикации</h3>
+        </div>
+        <div class="card-body">
+            {% if recent_publications %}
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Пост</th>
+                        <th>Платформа</th>
+                        <th>Статус</th>
+                        <th>Время</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for pub in recent_publications %}
+                    <tr>
+                        <td>
+                            <a href="{% url 'post_detail' pub.post.id %}">{{ pub.post.title|truncatechars:40 }}</a>
+                        </td>
+                        <td>
+                            <span class="badge badge-platform-{{ pub.platform.name }}">
+                                {{ pub.platform.display_name }}
+                            </span>
+                        </td>
+                        <td>
+                            <span class="badge badge-{{ pub.status }}">{{ pub.get_status_display }}</span>
+                        </td>
+                        <td>{{ pub.published_at|date:"d.m H:i" }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <p class="empty-text">Ещё нет публикаций</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Platforms Status -->
+    <div class="card">
+        <div class="card-header">
+            <h3>🔌 Платформы</h3>
+        </div>
+        <div class="card-body">
+            {% for platform in platforms %}
+            <div class="platform-item">
+                <span class="platform-icon">
+                    {% if platform.name == 'telegram' %}📱{% else %}💬{% endif %}
+                </span>
+                <span class="platform-name">{{ platform.display_name }}</span>
+                <span class="platform-status {% if platform.is_active %}active{% else %}inactive{% endif %}">
+                    {% if platform.is_active %}✅{% else %}❌{% endif %}
+                </span>
+            </div>
+            {% empty %}
+            <p class="empty-text">Платформы не настроены</p>
+            {% endfor %}
+            <a href="{% url 'settings' %}" class="btn btn-secondary btn-sm">Настроить</a>
+        </div>
+    </div>
+</div>
+
+<!-- Chart Section -->
+<div class="card">
+    <div class="card-header">
+        <h3>📈 Публикации за неделю</h3>
+    </div>
+    <div class="card-body">
+        <div class="chart-container">
+            <canvas id="weeklyChart"></canvas>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    const dailyStats = {{ daily_stats| safe }};
+
+    const ctx = document.getElementById('weeklyChart').getContext('2d');
+    new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: dailyStats.map(s => s.date),
+            datasets: [{
+                label: 'Публикации',
+                data: dailyStats.map(s => s.count),
+                backgroundColor: 'rgba(59, 130, 246, 0.5)',
+                borderColor: 'rgb(59, 130, 246)',
+                borderWidth: 1,
+                borderRadius: 4,
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: false
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        stepSize: 1
+                    }
+                }
+            }
+        }
+    });
+</script>
+{% endblock %}

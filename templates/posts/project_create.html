@@ -1,0 +1,68 @@
+{% extends 'base.html' %}
+
+{% block title %}Добавить проект - 🏊 Бассейны{% endblock %}
+{% block page_title %}➕ Добавить проект{% endblock %}
+
+{% block content %}
+<form method="post" enctype="multipart/form-data" class="project-form">
+    {% csrf_token %}
+
+    <div class="card">
+        <div class="card-body">
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="title">Название проекта</label>
+                    <input type="text" id="title" name="title" required placeholder="Бассейн в Подмосковье">
+                </div>
+                <div class="form-group">
+                    <label for="pool_type">Тип бассейна</label>
+                    <select id="pool_type" name="pool_type" required>
+                        {% for value, label in pool_types %}
+                        <option value="{{ value }}">{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="size">Размеры</label>
+                    <input type="text" id="size" name="size" required placeholder="8x4 м, глубина 1.5-2 м">
+                </div>
+                <div class="form-group">
+                    <label for="location">Локация</label>
+                    <input type="text" id="location" name="location" placeholder="Москва и МО">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="features">Особенности</label>
+                <textarea id="features" name="features" rows="3"
+                    placeholder="Противоток, RGB подсветка, автоматическое покрытие"></textarea>
+            </div>
+
+            <div class="form-group">
+                <label for="description">Описание проекта</label>
+                <textarea id="description" name="description" rows="4"
+                    placeholder="Подробное описание проекта..."></textarea>
+            </div>
+
+            <div class="form-group">
+                <label for="main_image">Главное изображение</label>
+                <input type="file" id="main_image" name="main_image" accept="image/*">
+            </div>
+
+            <div class="form-group">
+                <label class="checkbox-label">
+                    <input type="checkbox" name="create_post" checked>
+                    Сразу создать пост из этого проекта
+                </label>
+            </div>
+        </div>
+        <div class="card-footer">
+            <button type="submit" class="btn btn-primary">💾 Сохранить проект</button>
+            <a href="{% url 'projects' %}" class="btn btn-secondary">Отмена</a>
+        </div>
+    </div>
+</form>
+{% endblock %}

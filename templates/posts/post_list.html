@@ -1,0 +1,85 @@
+{% extends 'base.html' %}
+
+{% block title %}Посты - 🏊 Бассейны{% endblock %}
+{% block page_title %}📝 Посты{% endblock %}
+
+{% block header_actions %}
+<a href="{% url 'post_create' %}" class="btn btn-primary">➕ Создать пост</a>
+{% endblock %}
+
+{% block content %}
+<!-- Filters -->
+<div class="filters-bar">
+    <form method="get" class="filters-form">
+        <div class="filter-group">
+            <label>Статус:</label>
+            <select name="status" onchange="this.form.submit()">
+                <option value="">Все</option>
+                {% for value, label in status_choices %}
+                <option value="{{ value }}" {% if status_filter==value %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="filter-group">
+            <label>Категория:</label>
+            <select name="category" onchange="this.form.submit()">
+                <option value="">Все</option>
+                {% for cat in categories %}
+                <option value="{{ cat.slug }}" {% if category_filter==cat.slug %}selected{% endif %}>{{ cat.name }}
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+    </form>
+</div>
+
+<!-- Posts List -->
+<div class="posts-grid">
+    {% for post in posts %}
+    <div class="post-card">
+        <div class="post-card-header">
+            <span class="badge badge-{{ post.status }}">{{ post.get_status_display }}</span>
+            {% if post.category %}
+            <span class="badge badge-category">{{ post.category.name }}</span>
+            {% endif %}
+        </div>
+
+        {% if post.image %}
+        <div class="post-card-image">
+            <img src="{{ post.image.url }}" alt="{{ post.title }}">
+        </div>
+        {% endif %}
+
+        <div class="post-card-body">
+            <h3 class="post-card-title">{{ post.title }}</h3>
+            <p class="post-card-excerpt">{{ post.content|truncatechars:120 }}</p>
+        </div>
+
+        <div class="post-card-footer">
+            <div class="post-platforms">
+                {% for platform in post.platforms.all %}
+                <span class="platform-badge platform-{{ platform.name }}" title="{{ platform.display_name }}">
+                    {% if platform.name == 'telegram' %}📱{% else %}💬{% endif %}
+                </span>
+                {% endfor %}
+            </div>
+            <div class="post-meta">
+                {% if post.scheduled_time %}
+                <span class="schedule-time">📅 {{ post.scheduled_time|date:"d.m H:i" }}</span>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="post-card-actions">
+            <a href="{% url 'post_detail' post.id %}" class="btn btn-sm">Открыть</a>
+            <a href="{% url 'post_edit' post.id %}" class="btn btn-sm btn-secondary">Редактировать</a>
+        </div>
+    </div>
+    {% empty %}
+    <div class="empty-state">
+        <p>📭 Нет постов</p>
+        <a href="{% url 'post_create' %}" class="btn btn-primary">Создать первый пост</a>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

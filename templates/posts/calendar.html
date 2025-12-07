@@ -1,0 +1,48 @@
+{% extends 'base.html' %}
+
+{% block title %}Календарь - 🏊 Бассейны{% endblock %}
+{% block page_title %}📅 Календарь публикаций{% endblock %}
+
+{% block extra_css %}
+<link href='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.css' rel='stylesheet' />
+{% endblock %}
+
+{% block content %}
+<div class="calendar-page">
+    <div class="card">
+        <div class="card-body">
+            <div id="calendar"></div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js'></script>
+<script src='https://cdn.jsdelivr.net/npm/@fullcalendar/core@6.1.10/locales/ru.global.min.js'></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const events = {{ events| safe
+    }};
+
+    const calendarEl = document.getElementById('calendar');
+    const calendar = new FullCalendar.Calendar(calendarEl, {
+        initialView: 'dayGridMonth',
+        locale: 'ru',
+        headerToolbar: {
+            left: 'prev,next today',
+            center: 'title',
+            right: 'dayGridMonth,timeGridWeek,listWeek'
+        },
+        events: events,
+        eventClick: function (info) {
+            window.location.href = '/posts/' + info.event.id + '/';
+        },
+        eventDidMount: function (info) {
+            info.el.style.cursor = 'pointer';
+        }
+    });
+    calendar.render();
+});
+</script>
+{% endblock %}

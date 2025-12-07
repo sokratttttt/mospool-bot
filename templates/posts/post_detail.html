@@ -1,0 +1,180 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ post.title }} - 🏊 Бассейны{% endblock %}
+{% block page_title %}📝 {{ post.title }}{% endblock %}
+
+{% block header_actions %}
+<div class="btn-group">
+    {% if post.status == 'pending' %}
+    <form method="post" action="{% url 'post_approve' post.id %}" style="display: inline;">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-success">✅ Одобрить</button>
+    </form>
+    {% endif %}
+
+    {% if post.status in 'approved,scheduled' %}
+    <form method="post" action="{% url 'post_publish' post.id %}" style="display: inline;">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-primary">🚀 Опубликовать сейчас</button>
+    </form>
+    {% endif %}
+
+    <a href="{% url 'post_edit' post.id %}" class="btn btn-secondary">✏️ Редактировать</a>
+
+    <form method="post" action="{% url 'post_delete' post.id %}" style="display: inline;"
+        onsubmit="return confirm('Удалить пост?');">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-danger">🗑️ Удалить</button>
+    </form>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="detail-grid">
+    <!-- Main Content -->
+    <div class="detail-main">
+        <div class="card">
+            <div class="card-header">
+                <span class="badge badge-{{ post.status }} badge-lg">{{ post.get_status_display }}</span>
+                {% if post.category %}
+                <span class="badge badge-category">{{ post.category.name }}</span>
+                {% endif %}
+                {% if post.ai_generated %}
+                <span class="badge badge-ai">🤖 ИИ</span>
+                {% endif %}
+            </div>
+            <div class="card-body">
+                {% if post.image %}
+                <div class="post-image">
+                    <img src="{{ post.image.url }}" alt="{{ post.title }}">
+                </div>
+                {% endif %}
+
+                <div class="post-content">
+                    <h3>Основной текст</h3>
+                    <pre class="content-preview">{{ post.content }}</pre>
+                </div>
+
+                {% if post.content_telegram %}
+                <div class="post-content">
+                    <h3>📱 Telegram версия</h3>
+                    <pre class="content-preview">{{ post.content_telegram }}</pre>
+                </div>
+                {% endif %}
+
+                {% if post.content_vk %}
+                <div class="post-content">
+                    <h3>💬 VK версия</h3>
+                    <pre class="content-preview">{{ post.content_vk }}</pre>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Publications Log -->
+        <div class="card">
+            <div class="card-header">
+                <h3>📤 История публикаций</h3>
+            </div>
+            <div class="card-body">
+                {% if publications %}
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Платформа</th>
+                            <th>Статус</th>
+                            <th>ID</th>
+                            <th>Время</th>
+                            <th>Ссылка</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for pub in publications %}
+                        <tr>
+                            <td>
+                                <span class="badge badge-platform-{{ pub.platform.name }}">
+                                    {{ pub.platform.display_name }}
+                                </span>
+                            </td>
+                            <td>
+                                <span class="badge badge-{{ pub.status }}">{{ pub.get_status_display }}</span>
+                            </td>
+                            <td><code>{{ pub.external_id }}</code></td>
+                            <td>{{ pub.published_at|date:"d.m.Y H:i" }}</td>
+                            <td>
+                                {% if pub.external_url %}
+                                <a href="{{ pub.external_url }}" target="_blank" class="btn btn-sm">🔗 Открыть</a>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% if pub.error_message %}
+                        <tr class="error-row">
+                            <td colspan="5">
+                                <div class="error-message">❌ {{ pub.error_message }}</div>
+                            </td>
+                        </tr>
+                        {% endif %}
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% else %}
+                <p class="empty-text">Ещё не публиковался</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Sidebar -->
+    <div class="detail-sidebar">
+        <div class="card">
+            <div class="card-header">
+                <h3>Информация</h3>
+            </div>
+            <div class="card-body">
+                <dl class="info-list">
+                    <dt>Платформы</dt>
+                    <dd>
+                        {% for platform in post.platforms.all %}
+                        <span class="badge badge-platform-{{ platform.name }}">
+                            {% if platform.name == 'telegram' %}📱{% else %}💬{% endif %}
+                            {{ platform.display_name }}
+                        </span>
+                        {% empty %}
+                        <span class="text-muted">Не выбраны</span>
+                        {% endfor %}
+                    </dd>
+
+                    <dt>Время публикации</dt>
+                    <dd>
+                        {% if post.scheduled_time %}
+                        📅 {{ post.scheduled_time|date:"d.m.Y H:i" }}
+                        {% else %}
+                        <span class="text-muted">Не запланировано</span>
+                        {% endif %}
+                    </dd>
+
+                    <dt>Опубликован</dt>
+                    <dd>
+                        {% if post.published_at %}
+                        ✅ {{ post.published_at|date:"d.m.Y H:i" }}
+                        {% else %}
+                        <span class="text-muted">Нет</span>
+                        {% endif %}
+                    </dd>
+
+                    <dt>Создан</dt>
+                    <dd>{{ post.created_at|date:"d.m.Y H:i" }}</dd>
+
+                    <dt>Обновлён</dt>
+                    <dd>{{ post.updated_at|date:"d.m.Y H:i" }}</dd>
+
+                    {% if post.created_by %}
+                    <dt>Автор</dt>
+                    <dd>{{ post.created_by.username }}</dd>
+                    {% endif %}
+                </dl>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

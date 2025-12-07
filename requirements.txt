@@ -1,0 +1,26 @@
+# Django
+Django>=4.2,<5.0
+django-environ>=0.11.0
+
+# Telegram Bot
+python-telegram-bot>=20.0
+
+# VK API
+vk-api>=11.9.0
+
+# AI (OpenAI-compatible for Mistral)
+openai>=1.0.0
+
+# Scheduler
+APScheduler>=3.10.0
+
+# Web scraping (optional)
+beautifulsoup4>=4.12.0
+requests>=2.31.0
+lxml>=5.0.0
+
+# Image processing
+Pillow>=10.0.0
+
+# Environment
+python-dotenv>=1.0.0

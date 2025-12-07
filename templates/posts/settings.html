@@ -1,0 +1,155 @@
+{% extends 'base.html' %}
+
+{% block title %}Настройки - 🏊 Бассейны{% endblock %}
+{% block page_title %}⚙️ Настройки{% endblock %}
+
+{% block content %}
+<div class="settings-grid">
+    <!-- Platforms -->
+    <div class="card">
+        <div class="card-header">
+            <h3>🔌 Платформы</h3>
+        </div>
+        <div class="card-body">
+            <p>Управление платформами доступно в <a href="/admin/posts/platform/">Django Admin</a></p>
+
+            {% for platform in platforms %}
+            <div class="platform-card">
+                <div class="platform-info">
+                    <span class="platform-icon">
+                        {% if platform.name == 'telegram' %}📱{% else %}💬{% endif %}
+                    </span>
+                    <div class="platform-details">
+                        <span class="platform-name">{{ platform.display_name }}</span>
+                        <span class="platform-channel">{{ platform.channel_id }}</span>
+                    </div>
+                    <span class="status-badge {% if platform.is_active %}active{% else %}inactive{% endif %}">
+                        {% if platform.is_active %}✅ Активна{% else %}❌ Отключена{% endif %}
+                    </span>
+                </div>
+                <div class="platform-actions">
+                    <form method="post">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="test_{{ platform.name }}">
+                        <button type="submit" class="btn btn-sm btn-secondary">🔍 Проверить</button>
+                    </form>
+                </div>
+            </div>
+            {% empty %}
+            <p class="empty-text">Платформы не настроены</p>
+            <a href="/admin/posts/platform/add/" class="btn btn-primary">➕ Добавить платформу</a>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- AI Settings -->
+    <div class="card">
+        <div class="card-header">
+            <h3>🤖 Mistral AI</h3>
+        </div>
+        <div class="card-body">
+            <p>Mistral AI используется для генерации контента.</p>
+            <p><a href="https://console.mistral.ai/" target="_blank">Получить API ключ →</a></p>
+
+            <form method="post">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="test_mistral">
+                <button type="submit" class="btn btn-secondary">🔍 Проверить подключение</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Scheduler Status -->
+    <div class="card">
+        <div class="card-header">
+            <h3>⏰ Планировщик</h3>
+        </div>
+        <div class="card-body">
+            <div class="scheduler-status">
+                <span class="status-badge {% if scheduler_status.running %}active{% else %}inactive{% endif %}">
+                    {% if scheduler_status.running %}✅ Работает{% else %}❌ Остановлен{% endif %}
+                </span>
+                <span>Задач: {{ scheduler_status.job_count }}</span>
+            </div>
+
+            {% if scheduler_status.jobs %}
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Задача</th>
+                        <th>Следующий запуск</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for job in scheduler_status.jobs %}
+                    <tr>
+                        <td>{{ job.name }}</td>
+                        <td>{{ job.next_run_time|default:"—" }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Schedule Slots -->
+    <div class="card">
+        <div class="card-header">
+            <h3>📅 Расписание публикаций</h3>
+        </div>
+        <div class="card-body">
+            <p>Автоматические слоты публикаций:</p>
+
+            {% if schedule_slots %}
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>День</th>
+                        <th>Время</th>
+                        <th>Платформы</th>
+                        <th>Статус</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for slot in schedule_slots %}
+                    <tr>
+                        <td>{{ slot.get_day_of_week_display }}</td>
+                        <td>{{ slot.time|time:"H:i" }}</td>
+                        <td>
+                            {% for p in slot.platforms.all %}
+                            {{ p.display_name }}{% if not forloop.last %}, {% endif %}
+                            {% endfor %}
+                        </td>
+                        <td>{% if slot.is_active %}✅{% else %}❌{% endif %}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <p class="empty-text">Расписание не настроено</p>
+            {% endif %}
+
+            <a href="/admin/posts/scheduleslot/" class="btn btn-secondary">Настроить расписание</a>
+        </div>
+    </div>
+
+    <!-- Quick Links -->
+    <div class="card">
+        <div class="card-header">
+            <h3>🔗 Быстрые ссылки</h3>
+        </div>
+        <div class="card-body">
+            <ul class="quick-links">
+                <li><a href="/admin/">🔧 Django Admin</a></li>
+                <li><a href="/admin/posts/platform/">📱 Управление платформами</a></li>
+                <li><a href="/admin/posts/posttemplate/">📝 Шаблоны постов</a></li>
+                <li><a href="/admin/posts/postcategory/">📁 Категории</a></li>
+                <li><a href="https://t.me/BotFather" target="_blank">🤖 Создать Telegram бота</a></li>
+                <li><a href="https://vk.com/apps?act=manage" target="_blank">💬 VK Приложения</a></li>
+                <li><a href="https://console.mistral.ai/" target="_blank">🧠 Mistral AI Console</a></li>
+            </ul>
+        </div>
+    </div>
+</div>
+{% endblock %}

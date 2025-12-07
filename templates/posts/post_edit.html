@@ -1,0 +1,96 @@
+{% extends 'base.html' %}
+
+{% block title %}Редактировать пост - 🏊 Бассейны{% endblock %}
+{% block page_title %}✏️ Редактировать: {{ post.title }}{% endblock %}
+
+{% block content %}
+<form method="post" enctype="multipart/form-data" class="post-form">
+    {% csrf_token %}
+
+    <div class="form-grid">
+        <div class="form-main">
+            <div class="card">
+                <div class="card-header">
+                    <h3>Основное</h3>
+                </div>
+                <div class="card-body">
+                    <div class="form-group">
+                        <label for="title">Заголовок</label>
+                        <input type="text" id="title" name="title" value="{{ post.title }}" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="content">Текст поста</label>
+                        <textarea id="content" name="content" rows="10" required>{{ post.content }}</textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="content_telegram">Текст для Telegram (опционально)</label>
+                        <textarea id="content_telegram" name="content_telegram"
+                            rows="6">{{ post.content_telegram }}</textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="content_vk">Текст для VK (опционально)</label>
+                        <textarea id="content_vk" name="content_vk" rows="6">{{ post.content_vk }}</textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="image">Изображение</label>
+                        {% if post.image %}
+                        <div class="current-image">
+                            <img src="{{ post.image.url }}" alt="Current">
+                        </div>
+                        {% endif %}
+                        <input type="file" id="image" name="image" accept="image/*">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="form-sidebar">
+            <div class="card">
+                <div class="card-header">
+                    <h3>Публикация</h3>
+                </div>
+                <div class="card-body">
+                    <div class="form-group">
+                        <label>Категория</label>
+                        <select name="category">
+                            <option value="">-- Выберите --</option>
+                            {% for cat in categories %}
+                            <option value="{{ cat.id }}" {% if post.category_id==cat.id %}selected{% endif %}>{{
+                                cat.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Платформы</label>
+                        <div class="checkbox-group">
+                            {% for platform in platforms %}
+                            <label class="checkbox-label">
+                                <input type="checkbox" name="platforms" value="{{ platform.id }}" {% if platform in
+                                    post.platforms.all %}checked{% endif %}>
+                                {% if platform.name == 'telegram' %}📱{% else %}💬{% endif %}
+                                {{ platform.display_name }}
+                            </label>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="scheduled_time">Время публикации</label>
+                        <input type="datetime-local" id="scheduled_time" name="scheduled_time"
+                            value="{% if post.scheduled_time %}{{ post.scheduled_time|date:'Y-m-d\TH:i' }}{% endif %}">
+                    </div>
+                </div>
+                <div class="card-footer">
+                    <button type="submit" class="btn btn-primary btn-block">💾 Сохранить</button>
+                    <a href="{% url 'post_detail' post.id %}" class="btn btn-secondary btn-block">Отмена</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</form>
+{% endblock %}
